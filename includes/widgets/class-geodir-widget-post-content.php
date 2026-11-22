@@ -1,0 +1,387 @@
+<?php
+/**
+ * GeoDir_Widget_Post_Content class.
+ *
+ * @since 2.0.0
+ */
+class GeoDir_Widget_Post_Content extends WP_Super_Duper {
+
+	public $arguments;
+
+	/**
+	 * Sets up the widgets name etc
+	 */
+	public function __construct() {
+		$options = array(
+			'textdomain'     => GEODIRECTORY_TEXTDOMAIN,
+			'block-icon'     => 'menu',
+			'block-category' => 'geodirectory',
+			'block-keywords' => "['geo','description','content']",
+			'class_name'     => __CLASS__,
+			'base_id'        => 'gd_post_content',
+			'name'           => __( 'GD > Post Content', 'geodirectory' ),
+			'widget_ops'     => array(
+				'classname'   => 'geodir-post-content-container ' . geodir_bsui_class(),
+				'description' => esc_html__( 'This shows a post content text. You can show text from any textarea field.', 'geodirectory' ),
+				'customize_selective_refresh' => true,
+				'geodirectory'    => true,
+				'gd_wgt_showhide' => 'show_on',
+				'gd_wgt_restrict' => array( 'gd-detail' ),
+			),
+			'block_group_tabs' => array(
+				'content'  => array(
+					'groups' => array(
+						__( 'Title', 'geodirectory' ),
+						__( 'General', 'geodirectory' )
+					),
+					'tab'    => array(
+						'title'     => __( 'Content', 'geodirectory' ),
+						'key'       => 'bs_tab_content',
+						'tabs_open' => true,
+						'open'      => true,
+						'class'     => 'text-center flex-fill d-flex justify-content-center',
+					),
+				),
+				'styles'   => array(
+					'groups' => array(
+						__( 'Design', 'geodirectory' )
+					),
+					'tab'    => array(
+						'title'     => __( 'Styles', 'geodirectory' ),
+						'key'       => 'bs_tab_styles',
+						'tabs_open' => true,
+						'open'      => true,
+						'class'     => 'text-center flex-fill d-flex justify-content-center',
+					),
+				),
+				'advanced' => array(
+					'groups' => array(
+						__( 'Wrapper Styles', 'geodirectory' ),
+						__( 'Advanced', 'geodirectory' ),
+					),
+					'tab'    => array(
+						'title'     => __( 'Advanced', 'geodirectory' ),
+						'key'       => 'bs_tab_advanced',
+						'tabs_open' => true,
+						'open'      => true,
+						'class'     => 'text-center flex-fill d-flex justify-content-center',
+					),
+				),
+			)
+		);
+
+		parent::__construct( $options );
+	}
+
+	/**
+	 * Set the arguments later.
+	 *
+	 * @return array
+	 */
+	public function set_arguments() {
+		$design_style = geodir_design_style();
+
+		$arguments          = array();
+		$arguments['title'] = array(
+			'title' => __( 'Title:', 'geodirectory' ),
+			'desc' => __( 'Extra main title if needed.', 'geodirectory' ),
+			'type' => 'text',
+			'placeholder' => __( 'Extra main title if needed.', 'geodirectory' ),
+			'default'  => '',
+			'desc_tip' => true,
+			'advanced' => true,
+			'group'    => __( 'Title', 'geodirectory' )
+		);
+
+		if ( $design_style ) {
+			$arguments = array_merge( $arguments, geodir_get_sd_title_inputs() );
+		}
+
+		$arguments = array_merge( $arguments, array(
+			'id'  => array(
+				'title' => __( 'Post ID:', 'geodirectory' ),
+				'desc' => __( 'Leave blank to use current post id.', 'geodirectory' ),
+				'type' => 'number',
+				'placeholder' => 'Leave blank to use current post id.',
+				'desc_tip' => true,
+				'default'  => '',
+				'advanced' => false
+			),
+			'key'  => array(
+				'name' => 'key',
+				'title' => __( 'Key:', 'geodirectory' ),
+				'desc' => __( 'This is the custom field key.', 'geodirectory' ),
+				'type' => 'select',
+				'placeholder' => 'post_content',
+				'options'   => $this->get_custom_field_keys(),
+				'desc_tip' => true,
+				'default'  => 'post_content',
+				'advanced' => false
+			),
+			'show'  => array(
+				'title' => __( 'Show:', 'geodirectory' ),
+				'desc' => __( 'What part of the post meta to show.', 'geodirectory' ),
+				'type' => 'select',
+				'options'   =>  array(
+					'' => __( 'value (strip_tags)', 'geodirectory' ),
+					'icon-label-value' => __( 'icon + label + value', 'geodirectory' ),
+					'icon-value' => __( 'icon + value', 'geodirectory' ),
+					'label-value' => __( 'label + value', 'geodirectory' ),
+					'label' => __( 'label', 'geodirectory' ),
+					'value' => __( 'value', 'geodirectory' ),
+				),
+				'default'  => '',
+				'desc_tip' => true,
+				'advanced' => false
+			),
+			'limit'  => array(
+				'title' => __( 'Word limit:', 'geodirectory' ),
+				'desc' => __( 'How many words to limit the text to. (will auto strip tags)', 'geodirectory' ),
+				'type' => 'number',
+				'placeholder'  => '20',
+				'desc_tip' => true,
+				'advanced' => false
+			),
+			'max_height'  => array(
+				'title' => __( 'Max height:', 'geodirectory' ),
+				'desc' => __( 'Height in (px) This can be used to set a consistent height of the text with the read more button then linking to the full text.', 'geodirectory' ),
+				'type' => 'number',
+				'default'  => '',
+				'placeholder' => '120',
+				'desc_tip' => true,
+				'advanced' => true
+			),
+			'read_more'  => array(
+				'title' => __( 'Read more link:', 'geodirectory' ),
+				'desc' => __( 'Show the read more link at the end of the text. enter `0` to not show link.', 'geodirectory' ),
+				'type' => 'text',
+				'desc_tip' => true,
+				'value'  => '',
+				'placeholder' => __( 'Read more...', 'geodirectory' ),
+				'advanced' => true
+			),
+			'alignment'  => array(
+				'title' => __( 'Text Align:', 'geodirectory' ),
+				'desc' => __( 'How the text should be aligned.', 'geodirectory' ),
+				'type' => 'select',
+				'options'   =>  array(
+					'' => __( 'None', 'geodirectory' ),
+					'left' => __( 'Left', 'geodirectory' ),
+					'center' => __( 'Center', 'geodirectory' ),
+					'right' => __( 'Right', 'geodirectory' ),
+					'justify' => __( 'Justify','geodirectory' ),
+				),
+				'desc_tip' => true,
+				'advanced' => false,
+				'group'    => __( 'Design', 'geodirectory' )
+			),
+			'strip_tags'  => array(
+				'title' => __( 'Strip tags:', 'geodirectory' ),
+				'desc' => __( 'Strip tags from content.', 'geodirectory' ),
+				'type' => 'checkbox',
+				'desc_tip' => true,
+				'value'  => '1',
+				'default'  => '0',
+				'advanced' => true
+			),
+		) );
+
+		// text color
+		$arguments['text_color'] = geodir_get_sd_text_color_input( array( 'group' => __( 'Design', 'geodirectory' ) ) );
+
+		// background
+		$arguments['bg']         = geodir_get_sd_background_input();
+
+		// margins
+		$arguments['mt']         = geodir_get_sd_margin_input( 'mt' );
+		$arguments['mr']         = geodir_get_sd_margin_input( 'mr' );
+		$arguments['mb']         = geodir_get_sd_margin_input( 'mb' );
+		$arguments['ml']         = geodir_get_sd_margin_input( 'ml' );
+
+		// padding
+		$arguments['pt']         = geodir_get_sd_padding_input( 'pt' );
+		$arguments['pr']         = geodir_get_sd_padding_input( 'pr' );
+		$arguments['pb']         = geodir_get_sd_padding_input( 'pb' );
+		$arguments['pl']         = geodir_get_sd_padding_input( 'pl' );
+
+		return $arguments;
+	}
+
+	/**
+	 * The Super block output function.
+	 *
+	 * @param array $args
+	 * @param array $widget_args
+	 * @param string $content
+	 *
+	 * @return mixed|string|void
+	 */
+	public function output( $args = array(), $widget_args = array(), $content = '' ) {
+		global $post, $gd_post;
+
+		$design_style     = geodir_design_style();
+		$block_preview    = $this->is_block_content_call();
+		$original_id      = isset( $args['id'] ) ? $args['id'] : '';
+
+		$args['location'] = ! empty( $args['location'] ) ? sanitize_text_field( $args['location'] ) : 'none';
+
+		$args = shortcode_atts( 
+			array(
+				'id'         => isset( $gd_post->ID ) ? $gd_post->ID : 0,
+				'key'        => 'post_content',
+				'show'       => '',
+				'strip_tags' => '',
+				'max_height' => '',
+				'read_more'  => '',
+				'limit'      => '', // The word limit number (default: 20)
+				'alignment'  => '', // left,right,center
+				'location'   => 'none',
+				'text_color' => '',
+				'bg'         => '',
+				'mt'         => '',
+				'mr'         => '',
+				'mb'         => '',
+				'ml'         => '',
+				'pt'         => '',
+				'pr'         => '',
+				'pb'         => '',
+				'pl'         => ''
+			),
+			$args,
+			'gd_post_content'
+		);
+
+		if ( empty( $args['id'] ) ) {
+			$args['id'] = isset( $gd_post->ID ) ? $gd_post->ID : 0;
+		}
+
+		// Don't show listings the current user is not allowed to view.
+		if ( ! empty( $args['id'] ) && ! geodir_widget_can_view_post( $args['id'], array( 'check_password' => false ) ) ) {
+			return '';
+		}
+
+		// Password protected listing: show the WordPress password form instead of the content.
+		if ( ! empty( $args['id'] ) && geodir_is_post_protected( $args['id'] ) ) {
+			return get_the_password_form( $args['id'] );
+		}
+
+		$post_type = ! $original_id && isset( $post->post_type ) ? $post->post_type : get_post_type( $args['id'] );
+
+		if ( $block_preview ) {
+			$post_type = 'gd_place';
+		}
+
+		// Error checks
+		$errors = array();
+
+		if ( empty( $args['key'] ) ) {
+			$errors[] = __( 'key is missing', 'geodirectory' );
+		}
+
+		if ( empty( $args['id'] ) ) {
+			$errors[] = __( 'id is missing', 'geodirectory' );
+		}
+
+		if ( empty( $post_type ) ) {
+			$errors[] = __( 'invalid post type', 'geodirectory' );
+		}
+
+		$output = '';
+
+		if ( ! empty( $errors ) ) {
+			$output .= esc_html( implode( ', ', $errors ) );
+		}
+
+		if ( $this->is_preview() ) {
+			$output = ''; // Show placeholder on builder preview.
+		}
+
+		if ( geodir_is_gd_post_type( $post_type ) ) {
+			$package_id = geodir_get_post_package_id( $args['id'], $post_type );
+			$fields     = geodir_post_custom_fields( $package_id ,  'all', $post_type );
+
+			if ( ! empty( $fields ) ) {
+				$field = array();
+
+				foreach( $fields as $field_info ) {
+					if ( $args['key'] == $field_info['htmlvar_name'] ) {
+						$field = $field_info;
+					}
+				}
+
+				if ( ! empty( $field ) ) {
+					// The field is allowed to be shown
+					$field = stripslashes_deep( $field );
+
+					// Set text alignment class
+					if ( $args['alignment'] != '' ) {
+						$field['css_class'] .= $design_style ? " text-" . sanitize_html_class( $args['alignment'] ) : " geodir-text-align" . sanitize_html_class( $args['alignment'] );
+					} elseif ( $design_style ) {
+						$field['css_class'] .= " clear-both ";
+					}
+
+					if ( $design_style ) {
+						$field['css_class'] .= " " . geodir_build_aui_class( $args );
+					}
+
+					// Set to value if empty
+					if ( empty( $args['show'] ) ) {
+						$args['show'] = 'value';
+					} else {
+						$args['show'] = sanitize_text_field( $args['show'] );
+					}
+
+					// Set max_height
+					if ( ! empty( $args['max_height'] ) ) {
+						$args['show'] .= '-fade::' . absint( $args['max_height'] );
+					}
+
+					// Force strip tags
+					if ( ! empty( $args['show'] ) && ! empty( $args['strip_tags'] ) ) {
+						$args['show'] .= "-strip";
+					}
+
+					if ( ! empty( $args['max_height'] ) || ! empty( $args['limit'] ) ) {
+						// Show read_more
+						if ( ! empty( $args['read_more'] ) ) {
+							$args['show'] .= "-more::" . esc_attr( $args['read_more'] );
+						} elseif ( empty( $args['read_more'] ) && $args['read_more'] !== '0' ) {
+							$args['show'] .= "-more";
+						}
+					}
+
+					// Set the limit
+					if ( ! empty( $args['limit'] ) ) {
+						$args['show'] .= "-limit::" . absint( $args['limit'] );
+					}
+
+					$output = apply_filters( "geodir_custom_field_output_{$field['type']}", '', $args['location'], $field, $args['id'], $args['show'] );
+				}
+			}
+		}
+
+		return $output;
+	}
+
+	/**
+	 * Gets an array of custom field keys for textareas.
+	 *
+	 * @return array
+	 */
+	public function get_custom_field_keys() {
+		$fields = geodir_post_custom_fields( '', 'all', 'all', 'none' );
+
+		$keys   = array();
+		$keys[] = __( 'Select Key', 'geodirectory' );
+
+		if ( ! empty( $fields ) ) {
+			foreach ( $fields as $field ) {
+				if ( isset( $field['field_type'] ) && $field['field_type'] == 'textarea' ) {
+					$keys[ $field['htmlvar_name'] ] = $field['htmlvar_name'];
+				}
+			}
+		}
+
+		return $keys;
+	}
+}

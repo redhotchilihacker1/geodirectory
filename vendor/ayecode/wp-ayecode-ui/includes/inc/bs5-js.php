@@ -1,0 +1,1713 @@
+<?php // @todo eventually we need to convert this to non jQuery ?>
+<script>
+    /**
+     * An AUI bootstrap adaptation of GreedyNav.js ( by Luke Jackson ).
+     *
+     * Simply add the class `greedy` to any <nav> menu and it will do the rest.
+     * Licensed under the MIT license - http://opensource.org/licenses/MIT
+     * @ver 0.0.1
+     */
+    function aui_init_greedy_nav(){
+        jQuery('nav.greedy').each(function(i, obj) {
+            // Check if already initialized, if so continue.
+            if(jQuery(this).hasClass("being-greedy")){return true;}
+
+            // Make sure its always expanded
+            jQuery(this).addClass('navbar-expand');
+            jQuery(this).off('shown.bs.tab').on('shown.bs.tab', function (e) {
+                if (jQuery(e.target).closest('.dropdown-menu').hasClass('greedy-links')) {
+                    jQuery(e.target).closest('.greedy').find('.greedy-btn.dropdown').attr('aria-expanded', 'false');
+                    jQuery(e.target).closest('.greedy-links').removeClass('show').addClass('d-none');
+                }
+            });
+            jQuery(document).off('mousemove', '.greedy-btn').on('mousemove', '.greedy-btn', function(e){
+                jQuery('.dropdown-menu.greedy-links').removeClass('d-none');
+            });
+            // vars
+            var $vlinks = '';
+            var $dDownClass = '';
+            var ddItemClass = 'greedy-nav-item';
+            if(jQuery(this).find('.navbar-nav').length){
+                if(jQuery(this).find('.navbar-nav').hasClass("being-greedy")){return true;}
+                $vlinks = jQuery(this).find('.navbar-nav').addClass("being-greedy w-100").removeClass('overflow-hidden');
+            }else if(jQuery(this).find('.nav').length){
+                if(jQuery(this).find('.nav').hasClass("being-greedy")){return true;}
+                $vlinks = jQuery(this).find('.nav').addClass("being-greedy w-100").removeClass('overflow-hidden');
+                $dDownClass = ' mt-0 p-0 zi-5 ';
+                ddItemClass += ' mt-0 me-0';
+            }else{
+                return false;
+            }
+
+            jQuery($vlinks).append('<li class="nav-item list-unstyled ml-auto greedy-btn d-none dropdown"><button data-bs-toggle="collapse" class="nav-link greedy-nav-link" role="button"><i class="fas fa-ellipsis-h"></i> <span class="greedy-count badge bg-dark rounded-pill"></span></button><ul class="greedy-links dropdown-menu dropdown-menu-end '+$dDownClass+'"></ul></li>');
+
+            var $hlinks = jQuery(this).find('.greedy-links');
+            var $btn = jQuery(this).find('.greedy-btn');
+
+            var numOfItems = 0;
+            var totalSpace = 0;
+            var closingTime = 1000;
+            var breakWidths = [];
+
+            // Get initial state
+            $vlinks.children().outerWidth(function(i, w) {
+                totalSpace += w;
+                numOfItems += 1;
+                breakWidths.push(totalSpace);
+            });
+
+            var availableSpace, numOfVisibleItems, requiredSpace, buttonSpace ,timer;
+
+            /*
+			 The check function.
+			 */
+            function check() {
+                // Get instant state
+                buttonSpace = $btn.width();
+                availableSpace = $vlinks.width() - 10;
+                numOfVisibleItems = $vlinks.children().length;
+                requiredSpace = breakWidths[numOfVisibleItems - 1];
+
+                // There is not enough space
+                if (numOfVisibleItems > 1 && requiredSpace > availableSpace) {
+                    var $li = $vlinks.children().last().prev();
+                    $li.removeClass('nav-item').addClass(ddItemClass);
+                    if (!jQuery($hlinks).children().length) {
+                        $li.find('.nav-link').addClass('w-100 dropdown-item rounded-0 rounded-bottom');
+                    } else {
+                        jQuery($hlinks).find('.nav-link').removeClass('rounded-top');
+                        $li.find('.nav-link').addClass('w-100 dropdown-item rounded-0 rounded-top');
+                    }
+                    $li.prependTo($hlinks);
+                    numOfVisibleItems -= 1;
+                    check();
+                    // There is more than enough space
+                } else if (availableSpace > breakWidths[numOfVisibleItems]) {
+                    $hlinks.children().first().insertBefore($btn);
+                    numOfVisibleItems += 1;
+                    check();
+                }
+                // Update the button accordingly
+                jQuery($btn).find(".greedy-count").html( numOfItems - numOfVisibleItems);
+                if (numOfVisibleItems === numOfItems) {
+                    $btn.addClass('d-none');
+                } else $btn.removeClass('d-none');
+            }
+
+            // Window listeners
+            jQuery(window).on("resize",function() {
+                check();
+            });
+
+            // do initial check
+            check();
+        });
+    }
+
+    function aui_select2_locale() {
+        var aui_select2_params = <?php echo self::select2_locale(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>;
+
+        return {
+            theme: "bootstrap-5",
+            width: jQuery( this ).data( 'width' ) ? jQuery( this ).data( 'width' ) : jQuery( this ).hasClass( 'w-100' ) ? '100%' : 'style',
+            placeholder: jQuery( this ).data( 'placeholder' ),
+            'language': {
+                errorLoading: function() {
+                    // Workaround for https://github.com/select2/select2/issues/4355 instead of i18n_ajax_error.
+                    return aui_select2_params.i18n_searching;
+                },
+                inputTooLong: function(args) {
+                    var overChars = args.input.length - args.maximum;
+                    if (1 === overChars) {
+                        return aui_select2_params.i18n_input_too_long_1;
+                    }
+                    return aui_select2_params.i18n_input_too_long_n.replace('%item%', overChars);
+                },
+                inputTooShort: function(args) {
+                    var remainingChars = args.minimum - args.input.length;
+                    if (1 === remainingChars) {
+                        return aui_select2_params.i18n_input_too_short_1;
+                    }
+                    return aui_select2_params.i18n_input_too_short_n.replace('%item%', remainingChars);
+                },
+                loadingMore: function() {
+                    return aui_select2_params.i18n_load_more;
+                },
+                maximumSelected: function(args) {
+                    if (args.maximum === 1) {
+                        return aui_select2_params.i18n_selection_too_long_1;
+                    }
+                    return aui_select2_params.i18n_selection_too_long_n.replace('%item%', args.maximum);
+                },
+                noResults: function() {
+                    return aui_select2_params.i18n_no_matches;
+                },
+                searching: function() {
+                    return aui_select2_params.i18n_searching;
+                }
+            }
+        };
+    }
+
+    /**
+     * Initiate Select2 items.
+     */
+    function aui_init_select2(){
+        var select2Args, select2Locale = aui_select2_locale();
+        jQuery("select.aui-select2").each(function() {
+            if (!jQuery(this).hasClass("select2-hidden-accessible")) {
+                select2Args = jQuery.extend({}, select2Locale);
+                if (jQuery(this).closest('.modal.show').length && jQuery(this).closest('.modal-body').length) {
+                    // Keep the dropdown inside the modal to prevent focus trapping.
+                    select2Args.dropdownParent = jQuery(this).closest('.modal-body');
+                }
+                jQuery(this).select2(select2Args);
+            }
+        });
+    }
+
+    /**
+     * A function to convert a time value to a "ago" time text.
+     *
+     * @param selector string The .class selector
+     */
+    function aui_time_ago(selector) {
+        var aui_timeago_params = <?php echo self::timeago_locale(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>;
+
+        var templates = {
+            prefix: aui_timeago_params.prefix_ago,
+            suffix: aui_timeago_params.suffix_ago,
+            seconds: aui_timeago_params.seconds,
+            minute: aui_timeago_params.minute,
+            minutes: aui_timeago_params.minutes,
+            hour: aui_timeago_params.hour,
+            hours: aui_timeago_params.hours,
+            day: aui_timeago_params.day,
+            days: aui_timeago_params.days,
+            month: aui_timeago_params.month,
+            months: aui_timeago_params.months,
+            year: aui_timeago_params.year,
+            years: aui_timeago_params.years
+        };
+        var template = function (t, n) {
+            return templates[t] && templates[t].replace(/%d/i, Math.abs(Math.round(n)));
+        };
+
+        var timer = function (time) {
+            if (!time)
+                return;
+            time = time.replace(/\.\d+/, ""); // remove milliseconds
+            time = time.replace(/-/, "/").replace(/-/, "/");
+            time = time.replace(/T/, " ").replace(/Z/, " UTC");
+            time = time.replace(/([\+\-]\d\d)\:?(\d\d)/, " $1$2"); // -04:00 -> -0400
+            time = new Date(time * 1000 || time);
+
+            var now = new Date();
+            var seconds = ((now.getTime() - time) * .001) >> 0;
+            var minutes = seconds / 60;
+            var hours = minutes / 60;
+            var days = hours / 24;
+            var years = days / 365;
+
+            return templates.prefix + (
+                seconds < 45 && template('seconds', seconds) ||
+                seconds < 90 && template('minute', 1) ||
+                minutes < 45 && template('minutes', minutes) ||
+                minutes < 90 && template('hour', 1) ||
+                hours < 24 && template('hours', hours) ||
+                hours < 42 && template('day', 1) ||
+                days < 30 && template('days', days) ||
+                days < 45 && template('month', 1) ||
+                days < 365 && template('months', days / 30) ||
+                years < 1.5 && template('year', 1) ||
+                template('years', years)
+            ) + templates.suffix;
+        };
+
+        var elements = document.getElementsByClassName(selector);
+        if (selector && elements && elements.length) {
+            for (var i in elements) {
+                var $el = elements[i];
+                if (typeof $el === 'object') {
+                    $el.innerHTML = '<i class="far fa-clock"></i> ' + timer($el.getAttribute('title') || $el.getAttribute('datetime'));
+                }
+            }
+        }
+
+        // update time every minute
+        setTimeout(function() {
+            aui_time_ago(selector);
+        }, 60000);
+
+    }
+
+    var aui_popover_allowlist_cache = null;
+
+    /**
+     * Get the allowList used to sanitize `popover-html` content.
+     * Bootstrap's default allowList merged with the extra tags/attributes.
+     */
+    function aui_popover_allowlist() {
+        if (aui_popover_allowlist_cache) {
+            return aui_popover_allowlist_cache;
+        }
+
+        var extra = <?php echo wp_json_encode( (object) ( isset( $popover_allowlist ) ? $popover_allowlist : array() ) ); ?>,
+            Popover = typeof jQuery.fn.popover === 'function' && jQuery.fn.popover.Constructor ? jQuery.fn.popover.Constructor : ( window.bootstrap && window.bootstrap.Popover ? window.bootstrap.Popover : null ),
+            defaults = Popover && Popover.Default && Popover.Default.allowList ? Popover.Default.allowList : null,
+            allowList = {},
+            tag, i, attr;
+
+        // Use default list.
+        if (!defaults) {
+            return null;
+        }
+
+        // Extend with the defaults.
+        for (tag in defaults) {
+            if (Object.prototype.hasOwnProperty.call(defaults, tag)) {
+                allowList[tag] = defaults[tag].slice(0);
+            }
+        }
+
+        for (tag in extra) {
+            if (!Object.prototype.hasOwnProperty.call(extra, tag) || !Array.isArray(extra[tag])) {
+                continue;
+            }
+
+            if (!allowList[tag]) {
+                allowList[tag] = [];
+            }
+
+            for (i = 0; i < extra[tag].length; i++) {
+                attr = extra[tag][i];
+
+                // data-* prefix with a wildcard, e.g. data-my-plugin-*
+                if (attr.charAt(attr.length - 1) === '*') {
+                    allowList[tag].push(new RegExp('^' + attr.slice(0, -1) + '[\\w-]*$', 'i'));
+                } else if (allowList[tag].indexOf(attr) === -1) {
+                    allowList[tag].push(attr);
+                }
+            }
+        }
+
+        aui_popover_allowlist_cache = allowList;
+
+        return allowList;
+    }
+
+    /**
+     * Initiate tooltips on the page.
+     */
+    function aui_init_tooltips(){
+        if (typeof jQuery.fn.tooltip === 'function') {
+            jQuery('[data-bs-toggle="tooltip"]').tooltip();
+        } else {
+            console.log('jQuery.fn.tooltip not found');
+        }
+
+        if (typeof jQuery.fn.popover === 'function') {
+            jQuery('[data-bs-toggle="popover"]').popover();
+
+            var popoverArgs = {
+                html: true,
+                sanitize: <?php echo ( ! isset( $popover_sanitize ) || ! empty( $popover_sanitize ) ) ? 'true' : 'false'; ?>
+            };
+
+            if (popoverArgs.sanitize && aui_popover_allowlist()) {
+                popoverArgs.allowList = aui_popover_allowlist();
+            }
+
+            jQuery('[data-bs-toggle="popover-html"]').popover(popoverArgs);
+        } else {
+            console.log('jQuery.fn.popover not found');
+        }
+
+        // fix popover container compatibility
+        jQuery('[data-bs-toggle="popover"],[data-bs-toggle="popover-html"]').on('inserted.bs.popover', function() {
+            jQuery('body > .popover').wrapAll("<div class='bsui' />");
+        });
+    }
+
+    /**
+     * Initiate flatpickrs on the page.
+     */
+    $aui_doing_init_flatpickr = false;
+    function aui_init_flatpickr(){
+        if ( typeof jQuery.fn.flatpickr === "function" && !$aui_doing_init_flatpickr) {
+            $aui_doing_init_flatpickr = true;
+			<?php if ( ! empty( $flatpickr_locale ) ) { ?>try{flatpickr.localize(<?php echo $flatpickr_locale; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>);}catch(err){console.log(err.message);}<?php } ?>
+            jQuery('input[data-aui-init="flatpickr"]:not(.flatpickr-input)').flatpickr();
+        }
+        $aui_doing_init_flatpickr = false;
+    }
+
+    /**
+     * Initiate iconpicker on the page.
+     */
+    $aui_doing_init_iconpicker = false;
+    function aui_init_iconpicker(){
+        if ( typeof jQuery.fn.iconpicker === "function" && !$aui_doing_init_iconpicker) {
+            $aui_doing_init_iconpicker = true;
+            jQuery('input[data-aui-init="iconpicker"]:not(.iconpicker-input)').iconpicker();
+        }
+        $aui_doing_init_iconpicker= false;
+    }
+
+    function aui_modal_iframe($title,$url,$footer,$dismissible,$class,$dialog_class,$body_class,responsive){
+		$url = aui_sanitize_url($url);
+		if (!$url) {
+			return;
+		}
+        if(!$body_class){$body_class = 'p-0';}
+        var wClass = 'text-center position-absolute w-100 text-dark overlay overlay-white p-0 m-0 d-flex justify-content-center align-items-center';
+        var wStyle = '';
+        var sStyle = '';
+        var $body = "", sClass = "w-100 p-0 m-0";
+        if (responsive) {
+            $body += '<div class="embed-responsive embed-responsive-16by9 ratio ratio-16x9">';
+            wClass += ' h-100';
+            sClass += ' embed-responsive-item';
+        } else {
+            wClass += ' vh-100';
+            sClass += ' vh-100';
+            wStyle += ' height: 90vh !important;';
+            sStyle += ' height: 90vh !important;';
+        }
+        $body += '<div class="ac-preview-loading ' + wClass + '" style="left:0;top:0;' + wStyle + '"><div class="spinner-border" role="status"></div></div>';
+        $body += '<iframe id="embedModal-iframe" class="' + sClass + '" style="' + sStyle + '" src="" width="100%" height="100%" frameborder="0" allowtransparency="true"></iframe>';
+        if (responsive) {
+            $body += '</div>';
+        }
+        $m = aui_modal($title,$body,$footer,$dismissible,$class,$dialog_class,$body_class);
+
+        // myModalEl.addEventListener('hidden.bs.modal', event => {
+        //     jQuery(".aui-carousel-modal iframe").attr('src', '');
+        // });
+
+        const auiModal = document.getElementById('aui-modal');
+        auiModal.addEventListener( 'shown.bs.modal', function ( e ) {
+            iFrame = jQuery( '#embedModal-iframe') ;
+
+            jQuery('.ac-preview-loading').removeClass('d-none').addClass('d-flex');
+
+            iFrame.attr({
+                src: $url
+            });
+
+            //resize the iframe once loaded.
+            iFrame.on('load', function() {
+                jQuery('.ac-preview-loading').removeClass('d-flex').addClass('d-none');
+            });
+        });
+
+        return $m;
+    }
+
+    function aui_modal($title,$body,$footer,$dismissible,$class,$dialog_class,$body_class) {
+        if(!$class){$class = '';}
+        if(!$dialog_class){$dialog_class = '';}
+        if(!$body){$body = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';}
+
+       // remove it first
+       jQuery('.aui-modal').remove();
+       jQuery('.modal-backdrop').remove();
+       jQuery('body').css({'overflow': '','padding-right':''});
+
+
+        // var modal = document.getElementById('aui-modal');
+
+        var $modal = '';
+
+        $modal += '<div id="aui-modal" class="modal aui-modal fade shadow bsui '+$class+'" tabindex="-1">'+
+            '<div class="modal-dialog modal-dialog-centered '+$dialog_class+'">'+
+            '<div class="modal-content border-0 shadow">';
+
+        if($title) {
+            $modal += '<div class="modal-header">' +
+                '<h5 class="modal-title">' + $title + '</h5>';
+
+            if ($dismissible) {
+                $modal += '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">' +
+                    '</button>';
+            }
+
+            $modal += '</div>';
+        }
+        $modal += '<div class="modal-body '+$body_class+'">'+
+            $body+
+            '</div>';
+
+        if($footer){
+            $modal += '<div class="modal-footer">'+
+                $footer +
+                '</div>';
+        }
+
+        $modal +='</div>'+
+            '</div>'+
+            '</div>';
+
+        jQuery('body').append($modal);
+
+
+
+        // const ayeModal = modal ? bootstrap.Modal.getInstance( modal ) : new bootstrap.Modal('#aui-modal', {});
+        const ayeModal = new bootstrap.Modal('.aui-modal', {});
+        // ayeModal.hide().show();
+        ayeModal.show();
+
+        // return jQuery('.aui-modal').modal('hide').modal({
+        //     //backdrop: 'static'
+        // });
+    }
+
+    /**
+     * Show / hide fields depending on conditions.
+     */
+    function aui_conditional_fields(form){
+        jQuery(form).find(".aui-conditional-field").each(function () {
+
+            var $element_require = jQuery(this).data('element-require');
+
+            if ($element_require) {
+
+                $element_require = $element_require.replace("&#039;", "'"); // replace single quotes
+                $element_require = $element_require.replace("&quot;", '"'); // replace double quotes
+                if (aui_check_form_condition($element_require,form)) {
+                    jQuery(this).removeClass('d-none');
+                } else {
+                    jQuery(this).addClass('d-none');
+                }
+            }
+        });
+    }
+
+    /**
+     * Check form condition
+     */
+    function aui_check_form_condition(condition,form) {
+        if (form) {
+            condition = condition.replace(/\(form\)/g, "('"+form+"')");
+        }
+        return new Function("return " + condition+";")();
+    }
+
+    /**
+     * A function to determine if a element is on screen.
+     */
+    jQuery.fn.aui_isOnScreen = function(){
+
+        var win = jQuery(window);
+
+        var viewport = {
+            top : win.scrollTop(),
+            left : win.scrollLeft()
+        };
+        viewport.right = viewport.left + win.width();
+        viewport.bottom = viewport.top + win.height();
+
+        var bounds = this.offset();
+        bounds.right = bounds.left + this.outerWidth();
+        bounds.bottom = bounds.top + this.outerHeight();
+
+        return (!(viewport.right < bounds.left || viewport.left > bounds.right || viewport.bottom < bounds.top || viewport.top > bounds.bottom));
+
+    };
+
+    /**
+     * Maybe show multiple carousel items if set to do so.
+     */
+    function aui_carousel_maybe_show_multiple_items($carousel){
+        var $items = {};
+        var $item_count = 0;
+
+        // maybe backup
+        if(!jQuery($carousel).find('.carousel-inner-original').length){
+            jQuery($carousel).append('<div class="carousel-inner-original d-none">'+jQuery($carousel).find('.carousel-inner').html().replaceAll('carousel-item','not-carousel-item')+'</div>');
+        }
+
+        // Get the original items html
+        jQuery($carousel).find('.carousel-inner-original .not-carousel-item').each(function () {
+            $items[$item_count] = jQuery(this).html();
+            $item_count++;
+        });
+
+        // bail if no items
+        if(!$item_count){return;}
+
+        if(jQuery(window).width() <= 576){
+            // maybe restore original
+            if(jQuery($carousel).find('.carousel-inner').hasClass('aui-multiple-items') && jQuery($carousel).find('.carousel-inner-original').length){
+                jQuery($carousel).find('.carousel-inner').removeClass('aui-multiple-items').html(jQuery($carousel).find('.carousel-inner-original').html().replaceAll('not-carousel-item','carousel-item'));
+                jQuery($carousel).find(".carousel-indicators li").removeClass("d-none");
+            }
+
+        }else{
+            // new items
+            var $md_count = jQuery($carousel).data('limit_show');
+            var $md_cols_count = jQuery($carousel).data('cols_show');
+            var $new_items = '';
+            var $new_items_count = 0;
+            var $new_item_count = 0;
+            var $closed = true;
+            Object.keys($items).forEach(function(key,index) {
+
+                // close
+                if(index != 0 && Number.isInteger(index/$md_count) ){
+                    $new_items += '</div></div>';
+                    $closed = true;
+                }
+
+                // open
+                if(index == 0 || Number.isInteger(index/$md_count) ){
+                    $row_cols_class = $md_cols_count ? ' g-lg-4 g-3 row-cols-1 row-cols-lg-' + $md_cols_count  : '';
+                    $active = index == 0 ? 'active' : '';
+                    $new_items += '<div class="carousel-item '+$active+'"><div class="row' + $row_cols_class + ' ">'; // mb to account for shadows (removed mb-3 as it was causing padding issues
+                    $closed = false;
+                    $new_items_count++;
+                    $new_item_count = 0;
+                }
+
+                // content
+                $new_items += '<div class="col ">'+$items[index]+'</div>';
+                $new_item_count++;
+
+
+            });
+
+            // close if not closed in the loop
+            if(!$closed){
+                // check for spares
+                if($md_count-$new_item_count > 0){
+                    $placeholder_count = $md_count-$new_item_count;
+                    while($placeholder_count > 0){
+                        $new_items += '<div class="col "></div>';
+                        $placeholder_count--;
+                    }
+
+                }
+
+                $new_items += '</div></div>';
+            }
+
+            // insert the new items
+            jQuery($carousel).find('.carousel-inner').addClass('aui-multiple-items').html($new_items);
+
+            // fix any lazyload images in the active slider
+            jQuery($carousel).find('.carousel-item.active img').each(function () {
+                // fix the srcset
+                if(real_srcset = jQuery(this).attr("data-srcset")){
+                    if(!jQuery(this).attr("srcset")) jQuery(this).attr("srcset",real_srcset);
+                }
+                // fix the src
+                if(real_src = jQuery(this).attr("data-src")){
+                    if(!jQuery(this).attr("srcset"))  jQuery(this).attr("src",real_src);
+                }
+            });
+
+            // maybe fix carousel indicators
+            $hide_count = $new_items_count-1;
+            jQuery($carousel).find(".carousel-indicators li:gt("+$hide_count+")").addClass("d-none");
+        }
+
+        // bootstrap.Carousel.dispose($carousel);
+        // console.log( bootstrap.Carousel.getOrCreateInstance($carousel)._getItems() );
+        // trigger a global action to say we have
+        jQuery( window ).trigger( "aui_carousel_multiple" );
+    }
+
+    /**
+     * Init Multiple item carousels.
+     */
+    function aui_init_carousel_multiple_items(){
+        jQuery(window).on("resize",function(){
+            jQuery('.carousel-multiple-items').each(function () {
+                aui_carousel_maybe_show_multiple_items(this);
+            });
+        });
+
+        // run now
+        jQuery('.carousel-multiple-items').each(function () {
+            aui_carousel_maybe_show_multiple_items(this);
+        });
+    }
+
+    /**
+     * Allow navs to use multiple sub menus.
+     */
+    function init_nav_sub_menus(){
+
+        jQuery('.navbar-multi-sub-menus').each(function(i, obj) {
+            // Check if already initialized, if so continue.
+            if(jQuery(this).hasClass("has-sub-sub-menus")){return true;}
+
+            // Make sure its always expanded
+            jQuery(this).addClass('has-sub-sub-menus');
+
+            jQuery(this).find( '.dropdown-menu a.dropdown-toggle' ).on( 'click', function ( e ) {
+                var $el = jQuery( this );
+                $el.toggleClass('active-dropdown');
+                var $parent = jQuery( this ).offsetParent( ".dropdown-menu" );
+                if ( !jQuery( this ).next().hasClass( 'show' ) ) {
+                    jQuery( this ).parents( '.dropdown-menu' ).first().find( '.show' ).removeClass( "show" );
+                }
+                var $subMenu = jQuery( this ).next( ".dropdown-menu" );
+                $subMenu.toggleClass( 'show' );
+
+                jQuery( this ).parent( "li" ).toggleClass( 'show' );
+
+                jQuery( this ).parents( 'li.nav-item.dropdown.show' ).on( 'hidden.bs.dropdown', function ( e ) {
+                    jQuery( '.dropdown-menu .show' ).removeClass( "show" );
+                    $el.removeClass('active-dropdown');
+                } );
+
+                if ( !$parent.parent().hasClass( 'navbar-nav' ) ) {
+                    $el.next().addClass('position-relative border-top border-bottom');
+                }
+
+                return false;
+            } );
+
+        });
+    }
+
+    /**
+     * Open a lightbox when an embed item is clicked.
+     */
+    function aui_lightbox_embed($link,ele){
+        ele.preventDefault();
+
+        // remove it first
+        jQuery('.aui-carousel-modal').remove();
+
+        var $modal = '<div class="modal fade aui-carousel-modal bsui" id="aui-carousel-modal" tabindex="-1" role="dialog" aria-labelledby="aui-modal-title" aria-hidden="true"><div class="modal-dialog modal-dialog-centered modal-xl mw-100"><div class="modal-content bg-transparent border-0 shadow-none"><div class="modal-header"><h5 class="modal-title" id="aui-modal-title"></h5></div><div class="modal-body text-center"><i class="fas fa-circle-notch fa-spin fa-3x"></i></div></div></div></div>';
+        jQuery('body').append($modal);
+
+        const ayeModal = new bootstrap.Modal('.aui-carousel-modal', {});
+
+        const myModalEl = document.getElementById('aui-carousel-modal');
+        myModalEl.addEventListener('hidden.bs.modal', event => {
+            jQuery(".aui-carousel-modal iframe").attr('src', '');
+        });
+
+        jQuery('.aui-carousel-modal').on('shown.bs.modal', function(e) {
+            jQuery('.aui-carousel-modal .carousel-item.active').find('iframe').each(function() {
+                var $iframe = jQuery(this);
+                $iframe.parent().find('.ac-preview-loading').removeClass('d-none').addClass('d-flex');
+                if (!$iframe.attr('src') && $iframe.data('src')) {
+                    $iframe.attr('src', $iframe.data('src'));
+                }
+                $iframe.on('load', function() {
+                    setTimeout(function() {
+                        $iframe.parent().find('.ac-preview-loading').removeClass('d-flex').addClass('d-none');
+                    }, 1250);
+                });
+            });
+        });
+
+        $container = jQuery($link).closest('.aui-gallery');
+
+        $clicked_href = jQuery($link).attr('href');
+        $images = [];
+        $container.find('.aui-lightbox-image, .aui-lightbox-iframe').each(function() {
+            var a = this;
+            var href = jQuery(a).attr('href');
+            if (href) {
+                $images.push(href);
+            }
+        });
+
+        if( $images.length ){
+            var $carousel = '<div id="aui-embed-slider-modal" class="carousel slide" >';
+
+            // indicators
+            if($images.length > 1){
+                $i = 0;
+                $carousel  += '<ol class="carousel-indicators position-fixed">';
+                $container.find('.aui-lightbox-image, .aui-lightbox-iframe').each(function() {
+                    $active = $clicked_href == jQuery(this).attr('href') ? 'active' : '';
+                    $carousel  += '<li data-bs-target="#aui-embed-slider-modal" data-bs-slide-to="'+$i+'" class="'+$active+'"></li>';
+                    $i++;
+
+                });
+                $carousel  += '</ol>';
+            }
+
+            // items
+            $i = 0;
+            $rtl_class = '<?php echo is_rtl() ? 'justify-content-end' : 'justify-content-start'; ?>'; 
+            $carousel += '<div class="carousel-inner d-flex align-items-center ' + $rtl_class + '">';
+            $container.find('.aui-lightbox-image').each(function() {
+                var a = this;
+                var href = jQuery(a).attr('href');
+
+                $active = $clicked_href == jQuery(this).attr('href') ? 'active' : '';
+                $carousel += '<div class="carousel-item '+ $active+'"><div>';
+
+                // image
+                var css_height = window.innerWidth > window.innerHeight ? '90vh' : 'auto';
+                var srcset = jQuery(a).find('img').attr('srcset');
+                var sizes = '';
+                if (srcset) {
+                    var sources = srcset.split(',')
+                        .map(s => {
+                            // Using regex /\s+/ handles multiple spaces between the URL and width
+                            var parts = s.trim().split(/\s+/).filter(Boolean);
+                            if (parts.length >= 2) {
+                                return {
+                                    width: parseInt(parts[1].replace('w', '')),
+                                    descriptor: parts[1].replace('w', 'px') // Ensuring the descriptor is in pixels
+                                };
+                            }
+                            return null;
+                        })
+                        .filter(item => item !== null) // Remove any empty entries
+                        .sort((a, b) => b.width - a.width); // Sort from largest to smallest for proper descending order
+
+                    // Build the sizes string
+                    sizes = sources.map((source, index, array) => {
+                        // For the largest source, do not include max-width to serve as default for larger viewports
+                        if (index === 0) {
+                            return `${source.descriptor}`; // Using full descriptor for the largest image
+                        } else {
+                            // For other sources, specify max-width for one pixel less than the current width
+                            return `(max-width: ${source.width - 1}px) ${array[index - 1].descriptor}`;
+                        }
+                    }).reverse().join(', '); // Reverse to start from smallest to largest for logical order
+                }
+
+                var img = href ? jQuery(a).find('img').clone().attr('src', href ).attr('sizes', sizes ).removeClass().addClass('mx-auto d-block w-auto rounded').css({'max-height':css_height,'max-width':'98%'}).get(0).outerHTML :  jQuery(a).find('img').clone().removeClass().addClass('mx-auto d-block w-auto rounded').css({'max-height':css_height,'max-width':'98%'}).get(0).outerHTML;
+                $carousel += img;
+                // captions
+                if(jQuery(a).parent().find('.carousel-caption').length ){
+                    $carousel += jQuery(a).parent().find('.carousel-caption').clone().removeClass('sr-only visually-hidden').get(0).outerHTML;
+                }else if(jQuery(a).parent().find('.figure-caption').length ){
+                    $carousel += jQuery(a).parent().find('.figure-caption').clone().removeClass('sr-only visually-hidden').addClass('carousel-caption').get(0).outerHTML;
+                }
+                $carousel += '</div></div>';
+                $i++;
+            });
+
+            $container.find('.aui-lightbox-iframe').each(function() {
+                var a = this;
+                var css_height = window.innerWidth > window.innerHeight ? '90vh;' : 'auto;';
+                var styleWidth = $images.length > 1 ? 'max-width:70%;' : '';
+
+                $active = $clicked_href == jQuery(this).attr('href') ? 'active' : '';
+                $carousel += '<div class="carousel-item '+ $active+'"><div class="modal-xl mx-auto ratio ratio-16x9" style="max-height:'+css_height+styleWidth+'">';
+
+                // iframe
+                var url = aui_sanitize_url(jQuery(a).attr('href'),{fallback:'about:blank'});
+                var iframe = '<div class="ac-preview-loading text-light d-none" style="left:0;top:0;height:'+css_height +'"><div class="spinner-border m-auto" role="status"></div></div>';
+                iframe += url ? jQuery('<iframe class="aui-carousel-iframe" src="" allow="autoplay"></iframe>').attr('style', 'height:' + css_height).attr('data-src', url + '?rel=0&showinfo=0&modestbranding=1&autoplay=1').get(0).outerHTML : '';
+                var img = iframe ;//.css('height',css_height).get(0).outerHTML;
+                $carousel  += img;
+
+                $carousel  += '</div></div>';
+                $i++;
+            });
+            $carousel  += '</div>';
+
+            // next/prev indicators
+            if($images.length > 1) {
+                $carousel += '<a class="carousel-control-prev" href="#aui-embed-slider-modal" role="button" data-bs-slide="prev">';
+                $carousel += '<span class="carousel-control-prev-icon" aria-hidden="true"></span>';
+                $carousel += ' <a class="carousel-control-next" href="#aui-embed-slider-modal" role="button" data-bs-slide="next">';
+                $carousel += '<span class="carousel-control-next-icon" aria-hidden="true"></span>';
+                $carousel += '</a>';
+            }
+
+            $carousel  += '</div>';
+
+            var $close = '<button type="button" class="btn-close btn-close-white text-end position-fixed" style="right: 20px;top: 10px; z-index: 1055;" data-bs-dismiss="modal" aria-label="Close"></button>';
+
+            jQuery('.aui-carousel-modal .modal-content').html($carousel).prepend($close);
+
+            // ayeModal.getOrCreateInstance();
+            ayeModal.show();
+
+            /* Support carousel swipe in BS modal on touch device */
+            try {
+                if ('ontouchstart' in document.documentElement || navigator.maxTouchPoints > 0) {
+                    let _bsC = new bootstrap.Carousel('#aui-embed-slider-modal');
+                }
+            } catch(err) {}
+
+            // enable ajax load
+            //gd_init_carousel_ajax();
+        }
+    }
+
+    /**
+     * Init lightbox embed.
+     */
+    function aui_init_lightbox_embed(){
+        // Open a lightbox for embeded items
+        jQuery('.aui-lightbox-image, .aui-lightbox-iframe').off('click').on("click",function(ele) {
+            aui_lightbox_embed(this,ele);
+        });
+    }
+
+    /**
+     * Init modal iframe.
+     */
+    function aui_init_modal_iframe() {
+        jQuery('.aui-has-embed, [data-aui-embed="iframe"]').each(function(e){
+            if (!jQuery(this).hasClass('aui-modal-iframed') && jQuery(this).data('embed-url') && aui_sanitize_url(jQuery(this).data('embed-url'))) {
+                jQuery(this).addClass('aui-modal-iframed');
+
+                jQuery(this).on("click",function(e1) {
+                    aui_modal_iframe('',jQuery(this).data('embed-url'),'',true,'','modal-lg','aui-modal-iframe p-0',true);
+                    return false;
+                });
+            }
+        });
+    }
+
+    /**
+     * Show a toast.
+     */
+    $aui_doing_toast = false;
+    function aui_toast($id,$type,$title,$title_small,$body,$time,$can_close){
+
+        if($aui_doing_toast){setTimeout(function(){
+            aui_toast($id,$type,$title,$title_small,$body,$time,$can_close);
+        }, 500); return;}
+
+        $aui_doing_toast = true;
+
+        if($can_close == null){$can_close = false;}
+        if($time == '' || $time == null ){$time = 3000;}
+
+        // if already setup then just show
+        if(document.getElementById($id)){
+            jQuery('#'+$id).toast('show');
+            setTimeout(function(){ $aui_doing_toast = false; }, 500);
+            return;
+        }
+
+        var uniqid = Date.now();
+        if($id){
+            uniqid = $id;
+        }
+
+        $op = "";
+        $tClass = '';
+        $thClass = '';
+        $icon = "";
+
+        if ($type == 'success') {
+            $op = "opacity:.92;";
+            $tClass = 'alert bg-success w-auto';
+            $thClass = 'bg-transparent border-0 text-white';
+            $icon = "<div class='h5 m-0 p-0'><i class='fas fa-check-circle me-2'></i></div>";
+        } else if ($type == 'error' || $type == 'danger') {
+            $op = "opacity:.92;";
+            $tClass = 'alert bg-danger  w-auto';
+            $thClass = 'bg-transparent border-0 text-white';
+            $icon = "<div class='h5 m-0 p-0'><i class='far fa-times-circle me-2'></i></div>";
+        } else if ($type == 'info') {
+            $op = "opacity:.92;";
+            $tClass = 'alert bg-info  w-auto';
+            $thClass = 'bg-transparent border-0 text-white';
+            $icon = "<div class='h5 m-0 p-0'><i class='fas fa-info-circle me-2'></i></div>";
+        } else if ($type == 'warning') {
+            $op = "opacity:.92;";
+            $tClass = 'alert bg-warning  w-auto';
+            $thClass = 'bg-transparent border-0 text-dark';
+            $icon = "<div class='h5 m-0 p-0'><i class='fas fa-exclamation-triangle me-2'></i></div>";
+        }
+
+
+        // add container if not exist
+        if(!document.getElementById("aui-toasts")){
+            jQuery('body').append('<div class="bsui" id="aui-toasts"><div class="position-fixed aui-toast-bottom-right pr-3 pe-3 mb-1" style="z-index: 500000;right: 0;bottom: 0;'+$op+'"></div></div>');
+        }
+
+        $toast = '<div id="'+uniqid+'" class="toast fade hide shadow hover-shadow '+$tClass+'" style="" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="'+$time+'">';
+        if($type || $title || $title_small){
+            $toast += '<div class="toast-header '+$thClass+'">';
+            if($icon ){$toast += $icon;}
+            if($title){$toast += '<strong class="me-auto">'+$title+'</strong>';}
+            if($title_small){$toast += '<small>'+$title_small+'</small>';}
+            if($can_close){$toast += '<button type="button" class="ms-2 mb-1 btn-close" data-bs-dismiss="toast" aria-label="Close"></button>';}
+            $toast += '</div>';
+        }
+
+        if($body){
+            $toast += '<div class="toast-body">'+$body+'</div>';
+        }
+
+        $toast += '</div>';
+
+        jQuery('.aui-toast-bottom-right').prepend($toast);
+        jQuery('#'+uniqid).toast('show');
+        setTimeout(function(){ $aui_doing_toast = false; }, 500);
+    }
+
+    /**
+     * Animate a number.
+     */
+    function aui_init_counters(){
+
+        const animNum = (EL) => {
+
+            if (EL._isAnimated) return; // Animate only once!
+            EL._isAnimated = true;
+
+            let end = EL.dataset.auiend;
+            let start = EL.dataset.auistart;
+            let duration = EL.dataset.auiduration ? EL.dataset.auiduration : 2000;
+            let seperator = EL.dataset.auisep ? EL.dataset.auisep: '';
+
+            jQuery(EL).prop('Counter', start).animate({
+                Counter: end
+            }, {
+                duration: Math.abs(duration),
+                easing: 'swing',
+                step: function(now) {
+                    const text = seperator ?  (Math.ceil(now)).toLocaleString('en-US') : Math.ceil(now);
+                    const html = seperator ? text.split(",").map(n => `<span class="count">${n}</span>`).join(",") : text;
+                    if(seperator && seperator!=','){
+                        html.replace(',',seperator);
+                    }
+                    jQuery(this).html(html);
+                }
+            });
+        };
+
+        const inViewport = (entries, observer) => {
+            // alert(1);
+            entries.forEach(entry => {
+                if (entry.isIntersecting) animNum(entry.target);
+            });
+        };
+
+        jQuery("[data-auicounter]").each((i, EL) => {
+            const observer = new IntersectionObserver(inViewport);
+            observer.observe(EL);
+        });
+    }
+
+
+    /**
+     * Initiate all AUI JS.
+     */
+    function aui_init(){
+
+        // init counters
+        aui_init_counters();
+
+        // nav menu submenus
+        init_nav_sub_menus();
+
+        // init tooltips
+        aui_init_tooltips();
+
+        // init select2
+        aui_init_select2();
+
+        // init flatpickr
+        aui_init_flatpickr();
+
+        // init iconpicker
+        aui_init_iconpicker();
+
+        // init Greedy nav
+        aui_init_greedy_nav();
+
+        // Set times to time ago
+        aui_time_ago('timeago');
+
+        // init multiple item carousels
+        aui_init_carousel_multiple_items();
+
+        // init lightbox embeds
+        aui_init_lightbox_embed();
+
+        /* Init modal iframe */
+        aui_init_modal_iframe();
+    }
+
+    // run on window loaded
+    jQuery(window).on("load",function() {
+        aui_init();
+    });
+
+    /* Fix modal background scroll on iOS mobile device */
+    jQuery(function($) {
+        var ua = navigator.userAgent.toLowerCase();
+        var isiOS = ua.match(/(iphone|ipod|ipad)/);
+        if (isiOS) {
+            var pS = 0; pM = parseFloat($('body').css('marginTop'));
+
+            $(document).on('show.bs.modal', function() {
+                pS = window.scrollY;
+                $('body').css({
+                    marginTop: -pS,
+                    overflow: 'hidden',
+                    position: 'fixed',
+                });
+            }).on('hidden.bs.modal', function() {
+                $('body').css({
+                    marginTop: pM,
+                    overflow: 'visible',
+                    position: 'inherit',
+                });
+                window.scrollTo(0, pS);
+            });
+        }
+
+		$(document).on('slide.bs.carousel', function(el) {
+			var $_modal = $(el.relatedTarget).closest('.aui-carousel-modal:visible').length ? $(el.relatedTarget).closest('.aui-carousel-modal:visible') : '';
+			if ($_modal && $_modal.find('.carousel-item iframe.aui-carousel-iframe').length) {
+				/* Unset iframe src */
+				$_modal.find('.carousel-item.active iframe.aui-carousel-iframe').each(function(){
+					if ($(this).attr('src')) {
+						$(this).data('src', $(this).attr('src'));
+						$(this).attr('src', '');
+					}
+				});
+				/* Set iframe src */
+				if ($(el.relatedTarget).find('iframe.aui-carousel-iframe').length) {
+					$(el.relatedTarget).find('.ac-preview-loading').removeClass('d-none').addClass('d-flex');
+					var $cIframe = $(el.relatedTarget).find('iframe.aui-carousel-iframe');
+					if (! $cIframe.attr('src') && $cIframe.data('src')) {
+						$cIframe.attr('src', $cIframe.data('src'));
+					}
+					$cIframe.on('load', function(){
+						setTimeout(function(){$_modal.find('.ac-preview-loading').removeClass('d-flex').addClass('d-none');},1250);
+					});
+				}
+			}
+		});
+    });
+
+    /**
+     * Show a "confirm" dialog to the user (using jQuery UI's dialog)
+     *
+     * @param {string} message The message to display to the user
+     * @param {string} okButtonText OPTIONAL - The OK button text, defaults to "Yes"
+     * @param {string} cancelButtonText OPTIONAL - The Cancel button text, defaults to "No"
+     * @returns {Q.Promise<boolean>} A promise of a boolean value
+     */
+    var aui_confirm = function (message, okButtonText, cancelButtonText, isDelete, large ) {
+        okButtonText = okButtonText || 'Yes';
+        cancelButtonText = cancelButtonText || 'Cancel';
+        message = message || 'Are you sure?';
+        sizeClass = large ? '' : 'modal-sm';
+        btnClass = isDelete ? 'btn-danger' : 'btn-primary';
+
+        deferred = jQuery.Deferred();
+        var $body = "";
+        $body += "<h3 class='h4 py-3 text-center text-dark'>"+message+"</h3>";
+        $body += "<div class='d-flex'>";
+        $body += "<button class='btn btn-outline-secondary w-50 btn-round' data-bs-dismiss='modal'  onclick='deferred.resolve(false);'>"+cancelButtonText+"</button>";
+        $body += "<button class='btn "+btnClass+" ms-2 w-50 btn-round' data-bs-dismiss='modal'  onclick='deferred.resolve(true);'>"+okButtonText+"</button>";
+        $body += "</div>";
+        $modal = aui_modal('',$body,'',false,'',sizeClass);
+
+        return deferred.promise();
+    };
+
+    /**
+     * Flip the color scheem on scroll
+     * @param $value
+     * @param $iframe
+     */
+    function aui_flip_color_scheme_on_scroll($value, $iframe){
+        if(!$value) $value = window.scrollY;
+
+        var navbar = $iframe ?  $iframe.querySelector('.color-scheme-flip-on-scroll') : document.querySelector('.color-scheme-flip-on-scroll');
+        if (navbar == null) return;
+
+        let cs_original = navbar.dataset.cso;
+        let cs_scroll = navbar.dataset.css;
+
+        if (!cs_scroll && !cs_original) {
+            if( navbar.classList.contains('navbar-light') ){
+                cs_original = 'navbar-light';
+                cs_scroll  = 'navbar-dark';
+            }else if( navbar.classList.contains('navbar-dark') ){
+                cs_original = 'navbar-dark';
+                cs_scroll  = 'navbar-light';
+            }
+
+            navbar.dataset.cso = cs_original;
+            navbar.dataset.css = cs_scroll;
+        }
+
+        if($value > 0 || navbar.classList.contains('nav-menu-open') ){
+            navbar.classList.remove(cs_original);
+            navbar.classList.add(cs_scroll);
+        }else{
+            navbar.classList.remove(cs_scroll);
+            navbar.classList.add(cs_original);
+        }
+    }
+
+    /**
+     * Add a window scrolled data element.
+     */
+    window.onscroll = function () {
+        aui_set_data_scroll();
+        aui_flip_color_scheme_on_scroll();
+    };
+
+    /**
+     * Set scroll data element.
+     */
+    function aui_set_data_scroll(){
+        document.documentElement.dataset.scroll = window.scrollY;
+    }
+
+    // call data scroll function ASAP.
+    aui_set_data_scroll();
+    aui_flip_color_scheme_on_scroll();
+
+	<?php
+	// FSE tweaks.
+	if(!empty($_REQUEST['postType']) || !empty($_REQUEST['canvas']) ){ ?>
+    function aui_fse_set_data_scroll() {
+        console.log('init scroll');
+        let Iframe = document.getElementsByClassName("edit-site-visual-editor__editor-canvas");
+        if( Iframe[0] === undefined ){ return; }
+        let iframe_doc = Iframe[0].contentWindow ? Iframe[0].contentWindow.document : Iframe[0].contentDocument;
+        Iframe[0].contentWindow.onscroll = function () {
+            iframe_doc.documentElement.dataset.scroll = Iframe[0].contentWindow.scrollY;
+            aui_flip_color_scheme_on_scroll(Iframe[0].contentWindow.scrollY,iframe_doc);
+        };
+    }
+
+    setTimeout(function(){
+        aui_fse_set_data_scroll();
+    }, 3000);
+
+    // fire when URL changes also.
+    let FSElastUrl = location.href;
+
+    /**
+     * Re-bind the scroll handler when the editor navigates to another template or page.
+     *
+     * This used to run from a MutationObserver watching the whole document, so it was
+     * called for every DOM change the editor made, typing included, just to compare a
+     * URL. Watching the URL itself does the same job for a fraction of the cost.
+     */
+    function aui_fse_check_url_change(){
+        const url = location.href;
+
+        if ( url === FSElastUrl ) {
+            return;
+        }
+
+        FSElastUrl = url;
+        aui_fse_set_data_scroll();
+
+        // fire a second time incase of load delays.
+        setTimeout(function(){
+            aui_fse_set_data_scroll();
+        }, 2000);
+    }
+
+    window.addEventListener('popstate', aui_fse_check_url_change);
+    window.addEventListener('hashchange', aui_fse_check_url_change);
+
+    // The editor navigates with history.pushState(), which fires no event, so poll too.
+    setInterval(aui_fse_check_url_change, 500);
+
+
+    /**
+     * Convert hex color to rgb values.
+     *
+     * @param hex
+     * @returns {string|null}
+     */
+    function aui_fse_hexToRgb(hex) {
+        var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex.trim().substring(0, 7));
+        return result ? parseInt(result[1], 16) +','+parseInt(result[2], 16)+','+parseInt(result[3], 16) : null;
+    }
+
+    // The site colors we keep in sync with the global style palette.
+    const aui_fse_sync_colors = ['primary', 'danger', 'warning', 'info'];
+
+    // Last seen value for each synced color, so we only write when it actually changes.
+    let aui_fse_color_cache = {};
+
+    // True once the palette already on screen has been recorded.
+    let aui_fse_colors_primed = false;
+
+    /**
+     * Read the `styles` entry of the editor settings.
+     *
+     * This is a plain store read with no DOM or layout access, so it is cheap enough to run
+     * on every wp.data change. The array identity only changes when the global styles are
+     * regenerated, which is what we use as our "something actually changed" signal.
+     *
+     * @returns {Array|null}
+     */
+    function aui_fse_get_styles_setting(){
+        const store = wp.data && wp.data.select ? wp.data.select('core/block-editor') : null;
+
+        if ( ! store || typeof store.getSettings !== 'function' ) {
+            return null;
+        }
+
+        const settings = store.getSettings();
+
+        return settings && settings.styles ? settings.styles : null;
+    }
+
+    /**
+     * Get the global styles CSS string out of a `styles` setting array.
+     *
+     * @param styles
+     * @returns {string|null}
+     */
+    function aui_fse_get_global_styles_css( styles ){
+        return styles && styles[3] && typeof styles[3].css === 'string' ? styles[3].css : null;
+    }
+
+    /**
+     * update colors as the style colour pallet is changed
+     *
+     * @param prime When true, only record the current values instead of writing them.
+     * @returns {boolean} False when the editor canvas is not available yet.
+     */
+    function aui_fse_sync_site_colors( prime ){
+        const canvas = jQuery(".edit-site-visual-editor__editor-canvas").contents();
+        const element = canvas.find(".editor-styles-wrapper").get(0);
+
+        if ( element == null ) {
+            return false;
+        }
+
+        // Resolve the styles once and read every color from the same snapshot.
+        const computed = window.getComputedStyle(element);
+        let body = null;
+
+        aui_fse_sync_colors.forEach(function($color){
+            const newColorHex = computed.getPropertyValue('--wp--preset--color--'+$color);
+
+            // only do something if ColorHex has changed.
+            if( ! newColorHex || aui_fse_color_cache[$color] === newColorHex ) {
+                return;
+            }
+
+            // While priming we only record what is already there, as the previous code did.
+            if ( prime ) {
+                aui_fse_color_cache[$color] = newColorHex;
+
+                return;
+            }
+
+            if ( body === null ) {
+                body = canvas.find("html body").get(0) || false;
+            }
+
+            if ( body ) {
+                body.style.setProperty('--bs-'+$color+'-rgb',aui_fse_hexToRgb(newColorHex));
+
+                // update the cached value.
+                aui_fse_color_cache[$color] = newColorHex;
+            }
+        });
+
+        return true;
+    }
+
+    /**
+     * Record the palette that is already on screen, so the first change we see is also the
+     * first thing we write.
+     *
+     * The canvas iframe may not have rendered yet, so keep looking for a short while.
+     *
+     * @param attempts Remaining attempts.
+     */
+    function aui_fse_prime_site_colors( attempts ){
+        if ( aui_fse_colors_primed ) {
+            return;
+        }
+
+        if ( aui_fse_sync_site_colors( true ) ) {
+            aui_fse_colors_primed = true;
+
+            return;
+        }
+
+        if ( attempts > 0 ) {
+            setTimeout(function(){
+                aui_fse_prime_site_colors( attempts - 1 );
+            }, 1000);
+        }
+    }
+
+    /**
+     * update typography as the global styles are changed
+     *
+     * @param newStyles The global styles CSS string.
+     */
+    function aui_fse_sync_site_typography( newStyles ){
+        // Nothing to parse, so there is nothing to repaint.
+        if ( ! newStyles ) {
+            return;
+        }
+
+        // heading sizes
+        aui_updateCssRule('body.editor-styles-wrapper h1', 'font-size', aui_parseCSS(newStyles, 'h1', 'font-size'));
+        aui_updateCssRule('body.editor-styles-wrapper h2', 'font-size', aui_parseCSS(newStyles, 'h2', 'font-size'));
+        aui_updateCssRule('body.editor-styles-wrapper h3', 'font-size', aui_parseCSS(newStyles, 'h3', 'font-size'));
+        aui_updateCssRule('body.editor-styles-wrapper h4', 'font-size', aui_parseCSS(newStyles, 'h4', 'font-size'));
+        aui_updateCssRule('body.editor-styles-wrapper h5', 'font-size', aui_parseCSS(newStyles, 'h5', 'font-size'));
+        aui_updateCssRule('body.editor-styles-wrapper h6', 'font-size', aui_parseCSS(newStyles, 'h6', 'font-size'));
+
+        // ALl Headings
+       aui_updateCssRule('body.editor-styles-wrapper h1, body.editor-styles-wrapper h2, body.editor-styles-wrapper h3, body.editor-styles-wrapper h4, body.editor-styles-wrapper h5, body.editor-styles-wrapper h6', 'font-family', aui_parseCSS(newStyles, 'h1, h2, h3, h4, h5, h6', 'font-family'));
+
+        // individual headings
+        aui_updateCssRule('body.editor-styles-wrapper h1', 'font-family', aui_parseCSS(newStyles, 'h1{', 'font-family'));
+        aui_updateCssRule('body.editor-styles-wrapper h2', 'font-family', aui_parseCSS(newStyles, 'h2{', 'font-family'));
+        aui_updateCssRule('body.editor-styles-wrapper h3', 'font-family', aui_parseCSS(newStyles, 'h3{', 'font-family'));
+        aui_updateCssRule('body.editor-styles-wrapper h4', 'font-family', aui_parseCSS(newStyles, 'h4{', 'font-family'));
+        aui_updateCssRule('body.editor-styles-wrapper h5', 'font-family', aui_parseCSS(newStyles, 'h5{', 'font-family'));
+        aui_updateCssRule('body.editor-styles-wrapper h6', 'font-family', aui_parseCSS(newStyles, 'h6{', 'font-family'));
+
+        // console.log(aui_parseCSS(newStyles, 'h2{', 'font-family'));
+
+        // color
+        aui_updateCssRule('body.editor-styles-wrapper h1, body.editor-styles-wrapper h2, body.editor-styles-wrapper h3, body.editor-styles-wrapper h4, body.editor-styles-wrapper h5, body.editor-styles-wrapper h6', 'color', aui_parseCSS(newStyles, 'h1, h2, h3, h4, h5, h6', 'color'));
+
+        aui_updateCssRule('body.editor-styles-wrapper h1', 'color', aui_parseCSS(newStyles, 'h1{', 'color'));
+        aui_updateCssRule('body.editor-styles-wrapper h2', 'color', aui_parseCSS(newStyles, 'h2{', 'color'));
+        aui_updateCssRule('body.editor-styles-wrapper h3', 'color', aui_parseCSS(newStyles, 'h3{', 'color'));
+        aui_updateCssRule('body.editor-styles-wrapper h4', 'color', aui_parseCSS(newStyles, 'h4{', 'color'));
+        aui_updateCssRule('body.editor-styles-wrapper h5', 'color', aui_parseCSS(newStyles, 'h5{', 'color'));
+        aui_updateCssRule('body.editor-styles-wrapper h6', 'color', aui_parseCSS(newStyles, 'h6{', 'color'));
+
+
+
+        //background
+        aui_updateCssRule('body.editor-styles-wrapper h1, body.editor-styles-wrapper h2, body.editor-styles-wrapper h3, body.editor-styles-wrapper h4, body.editor-styles-wrapper h5, body.editor-styles-wrapper h6', 'background', aui_parseCSS(newStyles, 'h1, h2, h3, h4, h5, h6', 'background'));
+
+        aui_updateCssRule('body.editor-styles-wrapper h1', 'background', aui_parseCSS(newStyles, 'h1{', 'background'));
+        aui_updateCssRule('body.editor-styles-wrapper h2', 'background', aui_parseCSS(newStyles, 'h2{', 'background'));
+        aui_updateCssRule('body.editor-styles-wrapper h3', 'background', aui_parseCSS(newStyles, 'h3{', 'background'));
+        aui_updateCssRule('body.editor-styles-wrapper h4', 'background', aui_parseCSS(newStyles, 'h4{', 'background'));
+        aui_updateCssRule('body.editor-styles-wrapper h5', 'background', aui_parseCSS(newStyles, 'h5{', 'background'));
+        aui_updateCssRule('body.editor-styles-wrapper h6', 'background', aui_parseCSS(newStyles, 'h6{', 'background'));
+
+
+
+        //                console.log('Font size of h2 is:', fontSize);
+    }
+
+    setTimeout(function(){
+        aui_sync_admin_styles();
+    }, 10000);
+
+    // Guard so we only ever register one subscriber, even if this is called again.
+    let aui_fse_synced = false;
+
+    function aui_sync_admin_styles(){
+        if ( aui_fse_synced || ! wp.data || typeof wp.data.subscribe !== 'function' ) {
+            return;
+        }
+
+        aui_fse_synced = true;
+
+        // The `styles` array identity is our change signal, the CSS string tells us whether
+        // the typography rules need rewriting.
+        let aui_fse_last_styles = aui_fse_get_styles_setting();
+        let aui_fse_last_css = aui_fse_get_global_styles_css( aui_fse_last_styles );
+        let aui_fse_timer = null;
+
+        // CSS waiting to be applied, carried across debounced ticks so a change is never lost.
+        let aui_fse_pending_css = null;
+
+        aui_fse_prime_site_colors( 10 );
+
+        // A single subscriber for everything, gated on a cheap store read.
+        wp.data.subscribe(function(){
+            const styles = aui_fse_get_styles_setting();
+
+            // Nothing style related changed, so this is a keystroke, a selection, a save, etc.
+            // Bail out before going anywhere near the DOM.
+            if ( styles === aui_fse_last_styles ) {
+                return;
+            }
+
+            aui_fse_last_styles = styles;
+
+            const css = aui_fse_get_global_styles_css( styles );
+
+            if ( css && css !== aui_fse_last_css ) {
+                aui_fse_last_css = css;
+                aui_fse_pending_css = css;
+            }
+
+            // A single global style edit fires a burst of store updates, we only need the last.
+            if ( aui_fse_timer ) {
+                clearTimeout( aui_fse_timer );
+            }
+
+            aui_fse_timer = setTimeout(function(){
+                aui_fse_timer = null;
+
+                const css_to_apply = aui_fse_pending_css;
+                aui_fse_pending_css = null;
+
+                aui_fse_sync_site_colors();
+                aui_fse_sync_site_typography( css_to_apply );
+
+                // The iframe can apply the new stylesheet a beat after the store updates, so
+                // check the palette again once it has settled.
+                setTimeout(function(){
+                    aui_fse_sync_site_colors();
+                }, 500);
+            }, 150);
+        });
+    }
+
+    // setTimeout(function(){
+    //     aui_listen_global_style_click();
+    // }, 3000);
+    //
+    // function aui_listen_global_style_click(){
+    //     setTimeout(function(){
+    //         // check for global stylebook clicks
+    //         jQuery('.interface-pinned-items button').click(function() {
+    //             aui_listen_stylebook_click();
+    //         });
+    //     }, 500);
+    // }
+    //
+    //
+    //
+    // function aui_listen_stylebook_click(){
+    //     setTimeout(function(){
+    //         // check for global stylebook clicks
+    //         jQuery('.edit-site-global-styles-sidebar__header .components-button.has-icon').click(function() {
+    //             setTimeout(function(){
+    //                 aui_sync_admin_styles();
+    //             }, 500);
+    //         });
+    //     }, 500);
+    // }
+
+
+
+
+    function aui_parseCSS(cssString, selector, property) {
+        // Split the CSS string on closing braces
+        const rules = cssString.split('}');
+
+        // Search for the selector and property
+        for (let rule of rules) {
+            if (rule.includes(selector) && rule.includes(property)) {
+                // Extract the rule's content
+                const ruleContent = rule.split('{')[1];
+
+                // Split properties and search for the desired property
+                const properties = ruleContent.split(';');
+                for (let prop of properties) {
+                    if (prop.includes(property)) {
+                        // Extract and return the property value
+                        return prop.split(':')[1].trim();
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    // Function to update a CSS rule
+    function aui_updateCssRule(selector, property, value) {
+        // check fi we are viewing stylebook
+
+        var aui_inline_css = jQuery(".edit-site-visual-editor__editor-canvas").contents().find("#ayecode-ui-fse-inline-css").get(0);
+        var aui_inline_css_stylebook = jQuery(".edit-site-style-book__iframe").contents().find("#ayecode-ui-fse-inline-css").get(0);
+
+        if (aui_inline_css && aui_inline_css.sheet) {
+            var styleSheet = aui_inline_css.sheet;
+        }else if(aui_inline_css_stylebook && aui_inline_css_stylebook.sheet){
+            var styleSheet = aui_inline_css_stylebook.sheet;
+        }else{
+            return;
+        }
+
+        var rules = styleSheet.cssRules || styleSheet.rules;
+
+        // console.log(rules);
+
+        for (var i = 0; i < rules.length; i++) {
+            if (rules[i].selectorText === selector) {
+                rules[i].style[property] = value;
+                // console.log('update rule');
+                return; // Exit the function once the rule is found and updated
+            }
+        }
+
+        // If the rule doesn't exist, optionally add it
+        styleSheet.insertRule(`${selector} { ${property}: ${value}; }`, rules.length);
+        // console.log(`insert rule ${selector}`);
+    }
+<?php } ?>
+/**
+ * Sanitizes and validates a URL for safe use in an HTML attribute or a DOM property.
+ *
+ * @param {string} url - The URL to sanitize.
+ * @param {Object} [options] - Configuration options.
+ * @param {boolean} [options.allowRelative=false] - Allow same-origin relative URLs.
+ * @param {string} [options.baseOrigin=''] - Base URL for relative URLs when there is no window (SSR).
+ * @param {string[]|null} [options.allowedDomains=null] - Exact hostnames to allow (e.g. 'www.youtube.com').
+ *        null = no allowlist, [] = block all. A non-array, or any entry that is not a valid
+ *        hostname string, blocks all URLs.
+ * @returns {string} The sanitized URL, or fallback.
+ */
+function aui_sanitize_url(url, options) {
+    const FALLBACK_URL = ''; // '' OR 'about:blank'
+    const {
+		fallback = FALLBACK_URL,
+		allowRelative = false,
+		baseOrigin = '',
+		allowedDomains = null
+	  } = options || {};
+
+    if (typeof url !== 'string' || url.trim() === '') {
+        return fallback;
+    }
+
+    // Validate and normalize the allowlist up front (fail closed if malformed).
+    // Entries are normalized by the same parser as the URL (case, trailing spaces, IDN -> punycode).
+    let allowedHosts = null;
+
+    if (allowedDomains !== null) {
+        if (!Array.isArray(allowedDomains)) {
+            return fallback;
+        }
+
+        allowedHosts = [];
+
+        for (const domain of allowedDomains) {
+            if (typeof domain !== 'string' || domain.trim() === '') {
+                return fallback;
+            }
+
+            try {
+                allowedHosts.push(new URL('https://' + domain.trim()).hostname);
+            } catch (e) {
+                return fallback;
+            }
+        }
+    }
+
+    // Resolve the base used for relative URLs.
+    let currentOrigin = 'http://localhost';
+    let currentHref = 'http://localhost/';
+
+    if (typeof window !== 'undefined') {
+        currentOrigin = window.location.origin;
+        currentHref = window.location.href;
+    } else if (baseOrigin) {
+        try {
+            const normalizedBase = new URL(baseOrigin);
+            currentOrigin = normalizedBase.origin;
+            currentHref = normalizedBase.href;
+        } catch (e) {
+            return fallback;
+        }
+    }
+
+    // Parse with the native WHATWG URL parser (the same parser the browser uses to load the URL).
+    let parsed;
+    let isRelative = false;
+
+    try {
+        parsed = new URL(url);
+    } catch (e) {
+        if (!allowRelative) {
+            return fallback;
+        }
+
+        // On the server, never resolve relative URLs against the localhost placeholder.
+        if (typeof window === 'undefined' && !baseOrigin) {
+            return fallback;
+        }
+
+        try {
+            parsed = new URL(url, currentHref);
+            isRelative = true;
+        } catch (e2) {
+            return fallback;
+        }
+    }
+
+    // Only http and https.
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+        return fallback;
+    }
+
+    // Hostnames are not percent-encoded by the parser, so allow only real hostname characters
+    // (IDNs are already punycode here) or a bracketed IPv6 address. Blocks quotes, "=", "&", etc.
+    if (!/^(?:[a-z0-9_-]+\.)*[a-z0-9_-]+\.?$|^\[[0-9a-f:.]+\]$/.test(parsed.hostname)) {
+        return fallback;
+    }
+
+    // Relative URLs must stay on the current origin (blocks //evil.com, /\evil.com).
+    if (isRelative && parsed.origin !== currentOrigin) {
+        return fallback;
+    }
+
+    // No credentials (blocks https://google.com@evil.com).
+    if (parsed.username || parsed.password) {
+        return fallback;
+    }
+
+    // Exact hostname allowlist.
+    if (allowedHosts !== null && !allowedHosts.includes(parsed.hostname)) {
+        return fallback;
+    }
+
+    // The parser encodes " < > and spaces but not ' in the path, so encode quotes for any attribute quoting style.
+    return parsed.href.replace(/'/g, '%27').replace(/"/g, '%22');
+}
+
+/**
+ * Strip HTML tags.
+ * 
+ * @param {string} text - Text to strip the HTML tags from.
+ * @return {string} Stripped text.
+ */
+function aui_stripTags(text) {
+	if ('string' !== typeof text) {
+		return '';
+	}
+
+	const domParser = new DOMParser();
+	const htmlDocument = domParser.parseFromString(text, 'text/html');
+
+	// Self-assignment forces browser encoding/sanitization
+	htmlDocument.body.innerText = htmlDocument.body.innerText;
+
+	return htmlDocument.body.innerHTML;
+}
+
+/**
+ * Strip HTML tags and convert HTML entities.
+ * 
+ * @param {string} text - Text to strip tags and convert HTML entities.
+ * @return {string} Sanitized text.
+ */
+function aui_stripTagsEscHTML(text) {
+	let _text = aui_stripTags(text);
+	const textarea = document.createElement('textarea');
+
+	try {
+		textarea.textContent = _text;
+		_text = aui_stripTags(textarea.value);
+	} catch (er) {}
+
+	return _text;
+}
+</script>
